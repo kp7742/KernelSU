@@ -28,6 +28,27 @@ on:
           Patch level of common kernel manifest,
           for example: 2021-11
         default: 2022-05
+      module_dir:
+        required: false
+        type: string
+        description: >
+          Directory of the kernel module to build,
+          for example: kernelsu
+        default: kernelsu
+      module_name:
+        required: false
+        type: string
+        description: >
+          Name of the kernel module,
+          for example: kernelsu
+        default: kernelsu
+      module_config:
+        required: false
+        type: string
+        description: >
+          Config switch name of the module,
+          for example: KSU
+        default: KSU
       use_cache:
         required: false
         type: boolean
@@ -81,20 +102,23 @@ jobs:
           df -h
 
       - name: Setup Module
+        env:
+          MODULE_DIR: ${{ inputs.module_dir }}
+          MODULE_NAME: ${{ inputs.module_name }}
         run: |
           cd $GITHUB_WORKSPACE/android-kernel
-          echo "[+] KernelSU setup"
+          echo "[+] $MODULE_NAME setup"
           GKI_ROOT=$(pwd)
           echo "[+] GKI_ROOT: $GKI_ROOT"
-          echo "[+] Copy KernelSU driver to $GKI_ROOT/common/drivers"
-          ln -sf $GITHUB_WORKSPACE/KernelSU/kernel $GKI_ROOT/common/drivers/kernelsu
-          echo "[+] Add KernelSU driver to Makefile"
+          echo "[+] Copy $MODULE_DIR driver to $GKI_ROOT/common/drivers"
+          ln -sf $GITHUB_WORKSPACE/KernelSU/$MODULE_DIR $GKI_ROOT/common/drivers/$MODULE_DIR
+          echo "[+] Add $MODULE_NAME driver to Makefile"
           DRIVER_MAKEFILE=$GKI_ROOT/common/drivers/Makefile
           DRIVER_KCONFIG=$GKI_ROOT/common/drivers/Kconfig
-          grep -q "kernelsu" "$DRIVER_MAKEFILE" || printf "\nobj-\$(CONFIG_KSU) += kernelsu/\n" >> "$DRIVER_MAKEFILE"
-          grep -q "kernelsu" "$DRIVER_KCONFIG" || sed -i "/endmenu/i\\source \"drivers/kernelsu/Kconfig\"" "$DRIVER_KCONFIG"
+          grep -q "$MODULE_NAME" "$DRIVER_MAKEFILE" || printf "\nobj-\$(CONFIG_${{ inputs.module_config }}) += $MODULE_NAME/\n" >> "$DRIVER_MAKEFILE"
+          grep -q "$MODULE_NAME" "$DRIVER_KCONFIG" || sed -i "/endmenu/i\\source \"drivers/${{ inputs.module_dir }}/Kconfig\"" "$DRIVER_KCONFIG"
           repo status
-          echo "[+] KernelSU setup done."
+          echo "[+] $MODULE_NAME setup done."
 
       - name: Setup ccache
         if: inputs.use_cache == true
@@ -105,6 +129,9 @@ jobs:
           save: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
       - name: Setup for LKM
+        env:
+          MODULE_DIR: ${{ inputs.module_dir }}
+          MODULE_NAME: ${{ inputs.module_name }}
         if: ${{ inputs.build_lkm == true }}
         working-directory: android-kernel
         run: |
@@ -112,14 +139,14 @@ jobs:
           sudo apt-get install llvm-15 -y
           ast-grep -U -p '$$$ check_exports($$$) {$$$}' -r '' common/scripts/mod/modpost.c
           ast-grep -U -p 'check_exports($$$);' -r '' common/scripts/mod/modpost.c
-          sed -i '/config KSU/,/help/{s/default y/default m/}' common/drivers/kernelsu/Kconfig
-          echo "drivers/kernelsu/kernelsu.ko" >> common/android/gki_aarch64_modules
+          sed -i '/config ${{ inputs.module_config }}/,/help/{s/default y/default m/}' common/drivers/$MODULE_DIR/Kconfig
+          echo "drivers/$MODULE_DIR/$MODULE_NAME.ko" >> common/android/gki_aarch64_modules
 
           # bazel build, android14-5.15, android14-6.1 use bazel
           if [ ! -e build/build.sh ]; then
             sed -i 's/needs unknown symbol/Dont abort when unknown symbol/g' build/kernel/*.sh || echo "No unknown symbol scripts found"
             if [ -e common/modules.bzl ]; then
-              sed -i 's/_COMMON_GKI_MODULES_LIST = \[/_COMMON_GKI_MODULES_LIST = \[ "drivers\/kernelsu\/kernelsu.ko",/g' common/modules.bzl
+              sed -i 's/_COMMON_GKI_MODULES_LIST = \[/_COMMON_GKI_MODULES_LIST = \[ "drivers\/$MODULE_DIR\/$MODULE_NAME.ko",/g' common/modules.bzl
             fi
           else
             TARGET_FILE="build/kernel/build.sh"
@@ -137,7 +164,7 @@ jobs:
         run: |
           git config --global user.email "bot@lkm.org"
           git config --global user.name "LKMBot"
-          cd common/ && git add -A && git commit -a -m "Add KernelSU"
+          cd common/ && git add -A && git commit -a -m "Add ${{ inputs.module_dir }}"
           repo status
 
       - name: Build Kernel/LKM
@@ -152,14 +179,15 @@ jobs:
       - name: Prepare artifacts
         id: prepareArtifacts
         run: |
+          MODULE_NAME=${{ inputs.module_name }}
           OUTDIR=android-kernel/out/${{ inputs.version }}/dist
           if [ ! -e $OUTDIR ]; then
             OUTDIR=android-kernel/dist
           fi
           mkdir output
           if [ "${{ inputs.build_lkm}}" = "true" ]; then 
-            llvm-strip-15 -d $OUTDIR/kernelsu.ko
-            mv $OUTDIR/kernelsu.ko ./output/${{ inputs.version }}_kernelsu.ko
+            llvm-strip-15 -d $OUTDIR/$MODULE_NAME.ko
+            mv $OUTDIR/$MODULE_NAME.ko ./output/${{ inputs.version }}_$MODULE_NAME.ko
           else
             cp $OUTDIR/Image ./output/
             cp $OUTDIR/Image.lz4 ./output/
@@ -187,4 +215,4 @@ jobs:
         if: ${{ inputs.build_lkm == true }}
         with:
           name: ${{ inputs.version }}-lkm
-          path: ./output/*_kernelsu.ko
+          path: ./output/*_${{ inputs.module_name }}.ko
