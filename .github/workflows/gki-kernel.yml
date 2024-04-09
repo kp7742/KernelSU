@@ -32,10 +32,6 @@ on:
         required: false
         type: boolean
         default: true
-      debug:
-        required: false
-        type: boolean
-        default: false
       build_lkm:
         required: false
         type: boolean
@@ -84,9 +80,7 @@ jobs:
           repo --trace sync -c -j$(nproc --all) --no-tags
           df -h
 
-      - name: Setup KernelSU
-        env:
-          IS_DEBUG_KERNEL: ${{ inputs.debug }}
+      - name: Setup Module
         run: |
           cd $GITHUB_WORKSPACE/android-kernel
           echo "[+] KernelSU setup"
@@ -101,17 +95,6 @@ jobs:
           grep -q "kernelsu" "$DRIVER_KCONFIG" || sed -i "/endmenu/i\\source \"drivers/kernelsu/Kconfig\"" "$DRIVER_KCONFIG"
           repo status
           echo "[+] KernelSU setup done."
-
-      - name: Symbol magic
-        run: |
-          echo "[+] Export all symbol from abi_gki_aarch64.xml"
-          COMMON_ROOT=$GITHUB_WORKSPACE/android-kernel/common
-          KSU_ROOT=$GITHUB_WORKSPACE/KernelSU
-          ABI_XML=$COMMON_ROOT/android/abi_gki_aarch64.xml
-          SYMBOL_LIST=$COMMON_ROOT/android/abi_gki_aarch64
-          # python3 $KSU_ROOT/scripts/abi_gki_all.py $ABI_XML > $SYMBOL_LIST
-          echo "[+] Add KernelSU symbols"
-          cat $KSU_ROOT/kernel/export_symbol.txt | awk '{sub("[ \t]+","");print "  "$0}' >> $SYMBOL_LIST
 
       - name: Setup ccache
         if: inputs.use_cache == true
@@ -152,19 +135,14 @@ jobs:
       - name: Make working directory clean to avoid dirty
         working-directory: android-kernel
         run: |
-          rm common/android/abi_gki_protected_exports_* || echo "No protected exports!"
-          git config --global user.email "bot@kernelsu.org"
-          git config --global user.name "KernelSUBot"
+          git config --global user.email "bot@lkm.org"
+          git config --global user.name "LKMBot"
           cd common/ && git add -A && git commit -a -m "Add KernelSU"
           repo status
 
       - name: Build Kernel/LKM
         working-directory: android-kernel
         run: |
-          if [ ! -z ${{ vars.EXPECTED_SIZE }} ] && [ ! -z ${{ vars.EXPECTED_HASH }} ]; then
-            export KSU_EXPECTED_SIZE=${{ vars.EXPECTED_SIZE }}
-            export KSU_EXPECTED_HASH=${{ vars.EXPECTED_HASH }}
-          fi
           if [ -e build/build.sh ]; then
             LTO=thin BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh CC="/usr/bin/ccache clang"
           else
