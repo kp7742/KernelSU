@@ -1,4 +1,4 @@
-name: Build LKM for KernelSU
+name: Build LKM
 on:
   workflow_dispatch:
 
@@ -10,4 +10,7 @@ jobs:
       version_name: android12-5.10.185
       tag: android12-5.10-2023-09
       os_patch_level: 2023-09
+      module_dir: lkm
+      module_name: lkm
+      module_config: LKM_MOD
       build_lkm: true
