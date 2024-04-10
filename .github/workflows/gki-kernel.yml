@@ -102,10 +102,9 @@ jobs:
           df -h
 
       - name: Setup Module
-        env:
-          MODULE_DIR: ${{ inputs.module_dir }}
-          MODULE_NAME: ${{ inputs.module_name }}
         run: |
+          MODULE_DIR=${{ inputs.module_dir }}
+          MODULE_NAME=${{ inputs.module_name }}
           cd $GITHUB_WORKSPACE/android-kernel
           echo "[+] $MODULE_NAME setup"
           GKI_ROOT=$(pwd)
@@ -129,12 +128,12 @@ jobs:
           save: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
       - name: Setup for LKM
-        env:
-          MODULE_DIR: ${{ inputs.module_dir }}
-          MODULE_NAME: ${{ inputs.module_name }}
         if: ${{ inputs.build_lkm == true }}
         working-directory: android-kernel
         run: |
+          MODULE_DIR=${{ inputs.module_dir }}
+          MODULE_NAME=${{ inputs.module_name }}
+          
           pip install ast-grep-cli
           sudo apt-get install llvm-15 -y
           ast-grep -U -p '$$$ check_exports($$$) {$$$}' -r '' common/scripts/mod/modpost.c
