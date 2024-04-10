@@ -1,6 +1,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/version.h>
 
 static int __init lkm1_init(void) {
     printk(KERN_INFO "lkm1: %s", __FUNCTION__);

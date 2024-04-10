@@ -6,10 +6,10 @@ jobs:
   build-lkm:
     uses: ./.github/workflows/gki-kernel.yml
     with:
-      version: android12-5.10
-      version_name: android12-5.10.185
-      tag: android12-5.10-2023-09
-      os_patch_level: 2023-09
+      version: android14-6.1
+      version_name: android14-6.1.43
+      tag: android14-6.1-2023-11
+      os_patch_level: 2023-11
       module_dir: lkm
       module_name: lkm
       module_config: LKM_MOD
