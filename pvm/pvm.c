@@ -23,13 +23,13 @@ long dispatch_ioctl(struct file* const file, unsigned int const cmd, unsigned lo
     switch (cmd) {
         case OP_READ_MEM:
             {
-                pr_info("OP_READ_MEM - pid: %d, addr: %llx, size: %d\n", cm.pid, cm.addr, cm.size);
                 if (copy_from_user(&cm, (void __user*)arg, sizeof(cm)) != 0) {
-                    pr_err("copy_from_user failed.\n");
+                    pr_err("OP_READ_MEM copy_from_user failed.\n");
                     return -1;
                 }
+                pr_info("OP_READ_MEM - pid: %d, addr: %llx, size: %d\n", cm.pid, cm.addr, cm.size);
                 if (read_process_memory(cm.pid, cm.addr, cm.buffer, cm.size) == false) {
-                    pr_err("read_process_memory failed.\n");
+                    pr_err("OP_READ_MEM read_process_memory failed.\n");
                     return -1;
                 }
             }
@@ -46,16 +46,16 @@ long dispatch_ioctl(struct file* const file, unsigned int const cmd, unsigned lo
             break;
         case OP_MODULE_BASE:
             {
-                pr_info("OP_MODULE_BASE - pid: %d, name: %s\n", cm.pid, name);
                 if (copy_from_user(&mb, (void __user*)arg, sizeof(mb)) != 0 
                 ||  copy_from_user(name, (void __user*)mb.name, sizeof(name)-1) !=0) {
-                    pr_err("copy_from_user failed.\n");
+                    pr_err("OP_MODULE_BASE copy_from_user failed.\n");
                     return -1;
                 }
+                pr_info("OP_MODULE_BASE - pid: %d, name: %s\n", cm.pid, name);
                 mb.base = get_module_base(mb.pid, name);
                 pr_info("OP_MODULE_BASE - found base: %llx\n", mb.base);
                 if (copy_to_user((void __user*)arg, &mb, sizeof(mb)) !=0) {
-                    pr_err("copy_to_user failed.\n");
+                    pr_err("OP_MODULE_BASE copy_to_user failed.\n");
                     return -1;
                 }
             }
