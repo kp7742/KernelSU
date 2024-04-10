@@ -18,6 +18,7 @@ extern struct mm_struct *get_task_mm(struct task_struct *task);
 extern void mmput(struct mm_struct *);
 
 // Ref: https://elixir.bootlin.com/linux/v6.1.57/source/mm/mmap.c#L325
+//      https://elixir.bootlin.com/linux/v6.1.57/source/fs/open.c#L998
 uintptr_t traverse_vma(struct mm_struct* mm, char* name) {
     struct vm_area_struct *vma;
 #if(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
@@ -45,7 +46,9 @@ uintptr_t traverse_vma(struct mm_struct* mm, char* name) {
 #else
             path_nm = file_path(vma->vm_file, buf, ARC_PATH_MAX-1);
 #endif
+            pr_info("traverse_vma - vm_file: %s, path_nm: %s\n", &(vma->vm_file)->f_path, path_nm);
             if (!strcmp(kbasename(path_nm), name)) {
+                pr_info("traverse_vma - found: %llx\n", vma->vm_start);
                 return vma->vm_start;
             }
         }
@@ -62,14 +65,17 @@ uintptr_t get_module_base(pid_t pid, char* name) {
     if (!pid_struct) {
         return false;
     }
+    pr_info("get_module_base - pid_struct: %p\n", pid_struct);
     task = get_pid_task(pid_struct, PIDTYPE_PID);
     if (!task) {
         return false;
     }
+    pr_info("get_module_base - task: %p\n", task);
     mm = get_task_mm(task);
     if (!mm) {
         return false;
     }
     mmput(mm);
+    pr_info("get_module_base - mm: %p\n", mm);
     return traverse_vma(mm, name);
 }

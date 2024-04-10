@@ -149,19 +149,23 @@ bool read_process_memory(
     if (!pid_struct) {
         return false;
     }
+    pr_info("read_process_memory - pid_struct: %p\n", pid_struct);
 	task = get_pid_task(pid_struct, PIDTYPE_PID);
 	if (!task) {
         return false;
     }
+    pr_info("read_process_memory - task: %p\n", task);
 	mm = get_task_mm(task);
     if (!mm) {
         return false;
     }
     mmput(mm);
+    pr_info("read_process_memory - mm: %p\n", mm);
     pa = translate_linear_address(mm, addr);
     if (!pa) {
         return false;
     }
+    pr_info("read_process_memory - pa: %llx\n", pa);
     return read_physical_address(pa, buffer, size);
 }
 
@@ -195,3 +199,4 @@ bool write_process_memory(
     }
     return write_physical_address(pa,buffer,size);
 }
+
