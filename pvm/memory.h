@@ -96,17 +96,10 @@ phys_addr_t translate_linear_address(struct mm_struct* mm, uintptr_t va) {
 }
 #endif
 
-static inline int valid_phys_addr_range2(phys_addr_t addr, size_t size) {
-    return addr + size <= __pa(high_memory);
-}
-
 bool read_physical_address(phys_addr_t pa, void* buffer, size_t size) {
     void* mapped;
     
     if (!pfn_valid(__phys_to_pfn(pa))) {
-        return false;
-    }
-    if (!valid_phys_addr_range2(pa, size)) {
         return false;
     }
 	
@@ -126,9 +119,6 @@ bool write_physical_address(phys_addr_t pa, void* buffer, size_t size) {
     void* mapped;
     
     if (!pfn_valid(__phys_to_pfn(pa))) {
-        return false;
-    }
-    if (!valid_phys_addr_range2(pa, size)) {
         return false;
     }
 	
@@ -205,5 +195,3 @@ bool write_process_memory(
     }
     return write_physical_address(pa,buffer,size);
 }
-
-

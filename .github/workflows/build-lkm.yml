@@ -10,7 +10,7 @@ jobs:
       version_name: android14-6.1.43
       tag: android14-6.1-2023-11
       os_patch_level: 2023-11
-      module_dir: lkm
-      module_name: lkm
-      module_config: LKM_MOD
+      module_dir: pvm
+      module_name: pvm
+      module_config: PVM_MOD
       build_lkm: true
