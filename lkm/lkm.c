@@ -16,8 +16,8 @@ module_init(lkm1_init);
 module_exit(lkm1_exit);
 
 MODULE_AUTHOR("kp7742");
-MODULE_DESCRIPTION("lkm test");
-MODULE_LICENSE("MIT");
+MODULE_DESCRIPTION("lkm");
+MODULE_LICENSE("GPL");
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
