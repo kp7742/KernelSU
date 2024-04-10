@@ -5,18 +5,17 @@
 #include <linux/fs.h>
 #include <linux/version.h>
 
-#if(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 1))
+#if(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
+#include <linux/dcache.h>
 #include <linux/maple_tree.h>
+
+extern char *d_path(const struct path *, char *, int);
 #endif
 
 #define ARC_PATH_MAX 256
 
 extern struct mm_struct *get_task_mm(struct task_struct *task);
-extern char *file_path(struct file *, char *, int);
-
-#if(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 61))
 extern void mmput(struct mm_struct *);
-#endif
 
 // Ref: https://elixir.bootlin.com/linux/v6.1.57/source/mm/mmap.c#L325
 uintptr_t traverse_vma(struct mm_struct* mm, char* name) {
@@ -41,7 +40,11 @@ uintptr_t traverse_vma(struct mm_struct* mm, char* name) {
         char *path_nm = "";
 
         if (vma->vm_file) {
+#if(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 1))
+            path_nm = d_path(vma->vm_file, buf, ARC_PATH_MAX-1);
+#else
             path_nm = file_path(vma->vm_file, buf, ARC_PATH_MAX-1);
+#endif
             if (!strcmp(kbasename(path_nm), name)) {
                 return vma->vm_start;
             }
