@@ -14,11 +14,9 @@
 #include <asm/pgtable.h>
 
 extern struct mm_struct *get_task_mm(struct task_struct *task);
-
-// #if(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 61))
-// #if 1
 extern void mmput(struct mm_struct *);
 
+#if(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 61))
 phys_addr_t translate_linear_address(struct mm_struct* mm, uintptr_t va) {
     pgd_t *pgd;
     p4d_t *p4d;
@@ -59,7 +57,6 @@ phys_addr_t translate_linear_address(struct mm_struct* mm, uintptr_t va) {
 	
 	return page_addr + page_offset;
 }
-/*
 #else
 phys_addr_t translate_linear_address(struct mm_struct* mm, uintptr_t va) {
 
@@ -90,20 +87,21 @@ phys_addr_t translate_linear_address(struct mm_struct* mm, uintptr_t va) {
 	if(!pte_present(*pte)) {
         return 0;
     }
-	//页物理地址
+	//PFN_PHYS(x)
 	page_addr = (phys_addr_t)(pte_pfn(*pte) << PAGE_SHIFT);
-	//页内偏移
+	//PFN_ALIGN(x)
 	page_offset = va & (PAGE_SIZE-1);
 	
 	return page_addr + page_offset;
 }
 #endif
-*/
 
 #ifndef ARCH_HAS_VALID_PHYS_ADDR_RANGE
 static inline int valid_phys_addr_range(phys_addr_t addr, size_t size) {
     return addr + size <= __pa(high_memory);
 }
+#else
+extern int valid_phys_addr_range(phys_addr_t addr, size_t size);
 #endif
 
 bool read_physical_address(phys_addr_t pa, void* buffer, size_t size) {

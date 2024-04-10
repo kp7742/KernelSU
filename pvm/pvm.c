@@ -7,18 +7,15 @@
 
 #define DEVICE_NAME "Dyno"
 
-int dispatch_open(struct inode *node, struct file *file)
-{
+int dispatch_open(struct inode *node, struct file *file) {
     return 0;
 }
 
-int dispatch_close(struct inode *node, struct file *file)
-{
+int dispatch_close(struct inode *node, struct file *file) {
     return 0;
 }
 
-long dispatch_ioctl(struct file* const file, unsigned int const cmd, unsigned long const arg)
-{
+long dispatch_ioctl(struct file* const file, unsigned int const cmd, unsigned long const arg) {
     static COPY_MEMORY cm;
     static MODULE_BASE mb;
     static char name[0x100] = {0};
@@ -75,16 +72,14 @@ struct miscdevice misc = {
 	.fops = &dispatch_functions,
 };
 
-int __init driver_entry(void)
-{
+int __init driver_entry(void) {
     int ret;
     printk("[+] driver_entry_dyno");
 	ret = misc_register(&misc);
 	return ret;
 }
 
-void __exit driver_unload(void)
-{
+void __exit driver_unload(void) {
     printk("[+] driver_unload");
 	misc_deregister(&misc);
 }
