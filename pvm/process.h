@@ -65,17 +65,17 @@ uintptr_t get_module_base(pid_t pid, char* name) {
     if (!pid_struct) {
         return false;
     }
-    pr_info("get_module_base - pid_struct: %p\n", pid_struct);
+    pr_info("get_module_base - pid_struct: %llx\n", pid_struct);
     task = get_pid_task(pid_struct, PIDTYPE_PID);
     if (!task) {
         return false;
     }
-    pr_info("get_module_base - task: %p\n", task);
+    pr_info("get_module_base - task: %llx\n", task);
     mm = get_task_mm(task);
     if (!mm) {
         return false;
     }
     mmput(mm);
-    pr_info("get_module_base - mm: %p\n", mm);
+    pr_info("get_module_base - mm: %llx\n", mm);
     return traverse_vma(mm, name);
 }

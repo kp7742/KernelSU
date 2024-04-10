@@ -23,10 +23,13 @@ long dispatch_ioctl(struct file* const file, unsigned int const cmd, unsigned lo
     switch (cmd) {
         case OP_READ_MEM:
             {
+                pr_info("OP_READ_MEM - pid: %d, addr: %llx, size: %d\n", cm.pid, cm.addr, cm.size);
                 if (copy_from_user(&cm, (void __user*)arg, sizeof(cm)) != 0) {
+                    pr_err("copy_from_user failed.\n");
                     return -1;
                 }
                 if (read_process_memory(cm.pid, cm.addr, cm.buffer, cm.size) == false) {
+                    pr_err("read_process_memory failed.\n");
                     return -1;
                 }
             }
@@ -43,12 +46,16 @@ long dispatch_ioctl(struct file* const file, unsigned int const cmd, unsigned lo
             break;
         case OP_MODULE_BASE:
             {
+                pr_info("OP_MODULE_BASE - pid: %d, name: %s\n", cm.pid, name);
                 if (copy_from_user(&mb, (void __user*)arg, sizeof(mb)) != 0 
                 ||  copy_from_user(name, (void __user*)mb.name, sizeof(name)-1) !=0) {
+                    pr_err("copy_from_user failed.\n");
                     return -1;
                 }
                 mb.base = get_module_base(mb.pid, name);
+                pr_info("OP_MODULE_BASE - found base: %llx\n", mb.base);
                 if (copy_to_user((void __user*)arg, &mb, sizeof(mb)) !=0) {
+                    pr_err("copy_to_user failed.\n");
                     return -1;
                 }
             }
@@ -74,13 +81,13 @@ struct miscdevice misc = {
 
 int __init driver_entry(void) {
     int ret;
-    printk("[+] driver_entry_dyno");
+    pr_info("[+] driver_entry_dyno");
 	ret = misc_register(&misc);
 	return ret;
 }
 
 void __exit driver_unload(void) {
-    printk("[+] driver_unload");
+    pr_info("[+] driver_unload");
 	misc_deregister(&misc);
 }
 

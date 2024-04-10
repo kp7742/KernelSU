@@ -100,6 +100,7 @@ bool read_physical_address(phys_addr_t pa, void* buffer, size_t size) {
     void* mapped;
     
     if (!pfn_valid(__phys_to_pfn(pa))) {
+        pr_err("read_physical_address failed.\n");
         return false;
     }
 	
@@ -107,6 +108,7 @@ bool read_physical_address(phys_addr_t pa, void* buffer, size_t size) {
     if (!mapped) {
         return false;
     }
+    pr_info("read_physical_address - mapped: %llx\n", mapped);
     if(copy_to_user(buffer, mapped, size)) {
         iounmap(mapped);
         return false;
@@ -145,22 +147,23 @@ bool read_process_memory(
     struct pid* pid_struct;
     phys_addr_t pa;
 
+    pr_info("read_process_memory - pid: %d, addr: %llx, size: %d\n", cm.pid, cm.addr, cm.size);
     pid_struct = find_get_pid(pid);
     if (!pid_struct) {
         return false;
     }
-    pr_info("read_process_memory - pid_struct: %p\n", pid_struct);
+    pr_info("read_process_memory - pid_struct: %llx\n", pid_struct);
 	task = get_pid_task(pid_struct, PIDTYPE_PID);
 	if (!task) {
         return false;
     }
-    pr_info("read_process_memory - task: %p\n", task);
+    pr_info("read_process_memory - task: %llx\n", task);
 	mm = get_task_mm(task);
     if (!mm) {
         return false;
     }
     mmput(mm);
-    pr_info("read_process_memory - mm: %p\n", mm);
+    pr_info("read_process_memory - mm: %llx\n", mm);
     pa = translate_linear_address(mm, addr);
     if (!pa) {
         return false;
