@@ -47,9 +47,9 @@ uintptr_t traverse_vma(struct mm_struct* mm, char* name) {
 #else
             path_nm = file_path(vma->vm_file, buf, ARC_PATH_MAX-1);
 #endif
-            pr_info("traverse_vma - vm_file: %s, path_nm: %s\n", &(vma->vm_file)->f_path, path_nm);
+            pr_info("traverse_vma - path_nm: %s\n", path_nm);
             if (!strcmp(kbasename(path_nm), name)) {
-                pr_info("traverse_vma - found: %p\n", vma->vm_start);
+                pr_info("traverse_vma - found: %lx\n", vma->vm_start);
                 return vma->vm_start;
             }
         }
@@ -68,33 +68,37 @@ uintptr_t get_module_base(pid_t pid, char* name) {
     if (!pid_struct) {
         return false;
     }
-    pr_info("get_module_base - pid_struct: %p\n", pid_struct);
+    pr_info("get_module_base - pid_struct: %lx\n", pid_struct);
 
     task = pid_task(pid_struct, PIDTYPE_PID);
     if (!task) {
+        pr_err("get_module_base pid_task failed.\n");
         return false;
     }
-    pr_info("get_module_base - task: %p\n", task);
+    pr_info("get_module_base - task: %lx\n", task);
     rcu_read_unlock();
 #else
     pid_struct = find_get_pid(pid);
     if (!pid_struct) {
+        pr_err("get_module_base find_get_pid failed.\n");
         return false;
     }
-    pr_info("get_module_base - pid_struct: %p\n", pid_struct);
+    pr_info("get_module_base - pid_struct: %lx\n", pid_struct);
 
     task = get_pid_task(pid_struct, PIDTYPE_PID);
     if (!task) {
+        pr_err("get_module_base get_pid_task failed.\n");
         return false;
     }
-    pr_info("get_module_base - task: %p\n", task);
+    pr_info("get_module_base - task: %lx\n", task);
 #endif
 
     mm = get_task_mm(task);
     if (!mm) {
+        pr_err("get_module_base get_task_mm failed.\n");
         return false;
     }
-    pr_info("get_module_base - mm: %p\n", mm);
+    pr_info("get_module_base - mm: %lx\n", mm);
     mmput(mm);
 
     return traverse_vma(mm, name);

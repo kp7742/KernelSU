@@ -113,10 +113,7 @@ bool write_physical_address(phys_addr_t pa, void* buffer, size_t size) {
         return false;
     }
 #endif
-    if(copy_from_user(__va(pa), buffer, size)) {
-        return false;
-    }
-    return true;
+    return !copy_from_user(__va(pa), buffer, size);
 }
 
 bool read_process_memory(
@@ -131,34 +128,39 @@ bool read_process_memory(
     struct vm_area_struct* vma;
     phys_addr_t pa;
 
-    pr_info("read_process_memory - pid: %d, addr: %p, size: %zu\n", pid, addr, size);
+    pr_info("read_process_memory - pid: %d, addr: %lx, size: %zu\n", pid, addr, size);
     pid_struct = find_get_pid(pid);
     if (!pid_struct) {
+        pr_err("read_process_memory pid_struct failed.\n");
         return false;
     }
-    pr_info("read_process_memory - pid_struct: %p\n", pid_struct);
+    pr_info("read_process_memory - pid_struct: %lx\n", pid_struct);
 	task = get_pid_task(pid_struct, PIDTYPE_PID);
 	if (!task) {
+        pr_err("read_process_memory task failed.\n");
         return false;
     }
-    pr_info("read_process_memory - task: %p\n", task);
+    pr_info("read_process_memory - task: %lx\n", task);
 	mm = get_task_mm(task);
     if (!mm) {
+        pr_err("read_process_memory mm failed.\n");
         return false;
     }
-    pr_info("read_process_memory - mm: %p\n", mm);
+    pr_info("read_process_memory - mm: %lx\n", mm);
     vma = find_vma(mm, addr);
-    if(!vma || !(vma->vm_flags & 1) || (addr + size) <= vma->vm_end){
+    if(!vma || (vma->vm_flags & VM_READ) == 0 || (addr + size) > vma->vm_end){
         mmput(mm);
+        pr_err("read_process_memory vma failed.\n");
         return false;
     }
-    pr_info("read_process_memory - vma: %p\n", vma);
+    pr_info("read_process_memory - vma: %lx\n", vma);
     mmput(mm);
     pa = translate_linear_address(mm, addr);
     if (!pa) {
+        pr_err("read_process_memory pa failed.\n");
         return false;
     }
-    pr_info("read_process_memory - pa: %p\n", pa);
+    pr_info("read_process_memory - pa: %lx\n", pa);
     return read_physical_address(pa, buffer, size);
 }
 
@@ -171,6 +173,7 @@ bool write_process_memory(
     struct task_struct* task;
     struct mm_struct* mm;
     struct pid* pid_struct;
+    struct vm_area_struct* vma;
     phys_addr_t pa;
 
     pid_struct = find_get_pid(pid);
@@ -183,6 +186,11 @@ bool write_process_memory(
     }
     mm = get_task_mm(task);
     if (!mm) {
+        return false;
+    }
+    vma = find_vma(mm, addr);
+    if(!vma || (vma->vm_flags & VM_READ) == 0 || (addr + size) > vma->vm_end){
+        mmput(mm);
         return false;
     }
     mmput(mm);
