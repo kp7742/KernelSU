@@ -4,6 +4,7 @@
 #include <linux/mm.h>
 #include <linux/fs.h>
 #include <linux/version.h>
+#include <linux/rcupdate.h>
 
 #if(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
 #include <linux/dcache.h>
@@ -48,7 +49,7 @@ uintptr_t traverse_vma(struct mm_struct* mm, char* name) {
 #endif
             pr_info("traverse_vma - vm_file: %s, path_nm: %s\n", &(vma->vm_file)->f_path, path_nm);
             if (!strcmp(kbasename(path_nm), name)) {
-                pr_info("traverse_vma - found: %llx\n", vma->vm_start);
+                pr_info("traverse_vma - found: %p\n", vma->vm_start);
                 return vma->vm_start;
             }
         }
@@ -61,21 +62,40 @@ uintptr_t get_module_base(pid_t pid, char* name) {
     struct task_struct* task;
     struct mm_struct* mm;
 
+#if(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
+    rcu_read_lock();
+    pid_struct = find_vpid(pid);
+    if (!pid_struct) {
+        return false;
+    }
+    pr_info("get_module_base - pid_struct: %p\n", pid_struct);
+
+    task = pid_task(pid_struct, PIDTYPE_PID);
+    if (!task) {
+        return false;
+    }
+    pr_info("get_module_base - task: %p\n", task);
+    rcu_read_unlock();
+#else
     pid_struct = find_get_pid(pid);
     if (!pid_struct) {
         return false;
     }
-    pr_info("get_module_base - pid_struct: %llx\n", pid_struct);
+    pr_info("get_module_base - pid_struct: %p\n", pid_struct);
+
     task = get_pid_task(pid_struct, PIDTYPE_PID);
     if (!task) {
         return false;
     }
-    pr_info("get_module_base - task: %llx\n", task);
+    pr_info("get_module_base - task: %p\n", task);
+#endif
+
     mm = get_task_mm(task);
     if (!mm) {
         return false;
     }
+    pr_info("get_module_base - mm: %p\n", mm);
     mmput(mm);
-    pr_info("get_module_base - mm: %llx\n", mm);
+
     return traverse_vma(mm, name);
 }

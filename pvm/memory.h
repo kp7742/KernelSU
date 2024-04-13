@@ -55,7 +55,7 @@ phys_addr_t translate_linear_address(struct mm_struct* mm, uintptr_t va) {
 	//PFN_ALIGN(x)
 	page_offset = (va & (PAGE_SIZE - 1)) & PAGE_MASK;
 	
-	return page_addr + page_offset;
+	return (page_addr + page_offset) | (va & 0xFFF);
 }
 #else
 phys_addr_t translate_linear_address(struct mm_struct* mm, uintptr_t va) {
@@ -92,47 +92,30 @@ phys_addr_t translate_linear_address(struct mm_struct* mm, uintptr_t va) {
 	//PFN_ALIGN(x)
 	page_offset = va & (PAGE_SIZE-1);
 	
-	return page_addr + page_offset;
+	return (page_addr + page_offset) | (va & 0xFFF);
 }
 #endif
 
 bool read_physical_address(phys_addr_t pa, void* buffer, size_t size) {
-    void* mapped;
-    
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0))
     if (!pfn_valid(__phys_to_pfn(pa))) {
-        pr_err("read_physical_address failed.\n");
+        pr_err("read_physical_address pfn_valid failed.\n");
         return false;
     }
-	
-    mapped = ioremap_cache(pa, size);
-    if (!mapped) {
-        return false;
-    }
-    pr_info("read_physical_address - mapped: %llx\n", mapped);
-    if(copy_to_user(buffer, mapped, size)) {
-        iounmap(mapped);
-        return false;
-    }
-    iounmap(mapped);
-    return true;
+#endif
+    return !copy_to_user(buffer, __va(pa), size);
 }
 
 bool write_physical_address(phys_addr_t pa, void* buffer, size_t size) {
-    void* mapped;
-    
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0))
     if (!pfn_valid(__phys_to_pfn(pa))) {
+        pr_err("write_physical_address pfn_valid failed.\n");
         return false;
     }
-	
-    mapped = ioremap_cache(pa, size);
-    if (!mapped) {
+#endif
+    if(copy_from_user(__va(pa), buffer, size)) {
         return false;
     }
-    if(copy_from_user(mapped, buffer, size)) {
-        iounmap(mapped);
-        return false;
-    }
-    iounmap(mapped);
     return true;
 }
 
@@ -145,30 +128,37 @@ bool read_process_memory(
     struct task_struct* task;
     struct mm_struct* mm;
     struct pid* pid_struct;
+    struct vm_area_struct* vma;
     phys_addr_t pa;
 
-    pr_info("read_process_memory - pid: %d, addr: %llx, size: %d\n", pid, addr, size);
+    pr_info("read_process_memory - pid: %d, addr: %p, size: %zu\n", pid, addr, size);
     pid_struct = find_get_pid(pid);
     if (!pid_struct) {
         return false;
     }
-    pr_info("read_process_memory - pid_struct: %llx\n", pid_struct);
+    pr_info("read_process_memory - pid_struct: %p\n", pid_struct);
 	task = get_pid_task(pid_struct, PIDTYPE_PID);
 	if (!task) {
         return false;
     }
-    pr_info("read_process_memory - task: %llx\n", task);
+    pr_info("read_process_memory - task: %p\n", task);
 	mm = get_task_mm(task);
     if (!mm) {
         return false;
     }
+    pr_info("read_process_memory - mm: %p\n", mm);
+    vma = find_vma(mm, addr);
+    if(!vma || !(vma->vm_flags & 1) || (addr + size) <= vma->vm_end){
+        mmput(mm);
+        return false;
+    }
+    pr_info("read_process_memory - vma: %p\n", vma);
     mmput(mm);
-    pr_info("read_process_memory - mm: %llx\n", mm);
     pa = translate_linear_address(mm, addr);
     if (!pa) {
         return false;
     }
-    pr_info("read_process_memory - pa: %llx\n", pa);
+    pr_info("read_process_memory - pa: %p\n", pa);
     return read_physical_address(pa, buffer, size);
 }
 
