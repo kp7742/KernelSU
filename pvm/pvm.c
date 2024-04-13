@@ -51,7 +51,6 @@ long dispatch_ioctl(struct file* const file, unsigned int const cmd, unsigned lo
                     return -1;
                 }
                 mb.base = get_module_base(mb.pid, name);
-                pr_info("OP_MODULE_BASE - found base: %lx\n", mb.base);
                 if (copy_to_user((void __user*)arg, &mb, sizeof(mb)) !=0) {
                     pr_err("OP_MODULE_BASE copy_to_user failed.\n");
                     return -1;
