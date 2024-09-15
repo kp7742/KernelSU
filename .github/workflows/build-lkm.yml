@@ -6,10 +6,10 @@ jobs:
   build-lkm:
     uses: ./.github/workflows/gki-kernel.yml
     with:
-      version: android13-5.10
-      version_name: android13-5.10.189
-      tag: android13-5.10-2023-11
-      os_patch_level: 2023-11
+      version: android14-6.1
+      version_name: android14-6.1.25
+      tag: android14-6.1-2023-10
+      os_patch_level: 2023-10
       module_dir: pvm
       module_name: pvm
       module_config: PVM_MOD
