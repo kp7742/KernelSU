@@ -5,7 +5,7 @@
 #include "memory.h"
 #include "process.h"
 
-#define DEVICE_NAME "Dyno"
+#define DEVICE_NAME "goodlixofc"
 
 int dispatch_open(struct inode *node, struct file *file) {
     return 0;
